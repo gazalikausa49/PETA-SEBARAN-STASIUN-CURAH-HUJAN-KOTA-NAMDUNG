@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Peta Sebaran Stasiun Hujan Kota Bandung</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=DM+Sans:wght@400;500&display=swap');
+
+        :root {
+            --clr-bg: #0f1923;
+            --clr-card: #162030;
+            --clr-border: #1e3048;
+            --clr-accent: #38bdf8;
+            --clr-text: #e2eaf4;
+            --clr-muted: #7a9ab5;
+            --clr-red: #ef4444;
+            --clr-orange: #f97316;
+            --clr-green: #22c55e;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--clr-bg);
+            color: var(--clr-text);
+            min-height: 100vh;
+            padding: 24px 20px 32px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            font-family: 'Sora', sans-serif;
+            font-size: clamp(1.2rem, 3vw, 1.8rem);
+            font-weight: 700;
+            color: var(--clr-accent);
+            letter-spacing: -0.3px;
+        }
+
+        header p {
+            font-size: 0.82rem;
+            color: var(--clr-muted);
+            margin-top: 4px;
+        }
+
+        .info {
+            background: var(--clr-card);
+            border: 1px solid var(--clr-border);
+            padding: 10px 16px;
+            border-radius: 8px;
+            margin-bottom: 14px;
+            font-size: 0.85rem;
+            color: var(--clr-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info span { color: var(--clr-accent); font-weight: 600; }
+
+        /* Search box — top-left inside map via Leaflet control */
+        .search-control {
+            background: var(--clr-card);
+            border: 1px solid var(--clr-border);
+            border-radius: 8px;
+            padding: 6px 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+        }
+
+        .search-control input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--clr-text);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.82rem;
+            width: 180px;
+        }
+
+        .search-control input::placeholder { color: var(--clr-muted); }
+
+        .search-icon { color: var(--clr-accent); font-size: 14px; }
+
+        /* Legend */
+        .legend {
+            background: var(--clr-card);
+            border: 1px solid var(--clr-border);
+            border-radius: 8px;
+            padding: 12px 14px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.78rem;
+            color: var(--clr-text);
+            min-width: 190px;
+        }
+
+        .legend h4 {
+            font-family: 'Sora', sans-serif;
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: var(--clr-accent);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 5px;
+            color: var(--clr-muted);
+        }
+
+        .legend-dot {
+            width: 12px; height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            box-shadow: 0 0 6px currentColor;
+        }
+
+        #map {
+            height: 520px;
+            width: 100%;
+            border: 1px solid var(--clr-border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        /* Leaflet popup styling */
+        .leaflet-popup-content-wrapper {
+            background: #162030 !important;
+            color: #e2eaf4 !important;
+            border: 1px solid #1e3048 !important;
+            border-radius: 10px !important;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5) !important;
+            font-family: 'DM Sans', sans-serif !important;
+        }
+
+        .leaflet-popup-tip {
+            background: #162030 !important;
+        }
+
+        .popup-title {
+            font-family: 'Sora', sans-serif;
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #38bdf8;
+            margin-bottom: 6px;
+        }
+
+        .popup-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: #7a9ab5;
+            margin-bottom: 3px;
+        }
+
+        .popup-row strong { color: #e2eaf4; }
+
+        .leaflet-control-layers {
+            background: #162030 !important;
+            border: 1px solid #1e3048 !important;
+            border-radius: 8px !important;
+            color: #e2eaf4 !important;
+            font-family: 'DM Sans', sans-serif !important;
+            font-size: 0.82rem !important;
+        }
+
+        .leaflet-control-layers-toggle {
+            background-color: #162030 !important;
+        }
+
+        .leaflet-control-layers label {
+            color: #e2eaf4 !important;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🌧 Peta Sebaran Stasiun Hujan &amp; Curah Hujan Bandung</h1>
+        <p>Visualisasi interaktif sebaran stasiun hujan di Kota Bandung</p>
+    </header>
+
+    <div class="info">
+        <span>ℹ️ Informasi:</span> Klik pada marker stasiun hujan untuk melihat data curah hujan
+    </div>
+
+    <div id="map"></div>
+
+    <script>
+        // ─── Data stasiun hujan ───────────────────────────────────────────────
+        const stations = [
+            { name: "Stasiun Hujan Gedebage",    lat: -6.9439, lng: 107.7082, elev: 675,  rain: 2150 },
+            { name: "Stasiun Hujan Dayeuhkolot", lat: -6.9794, lng: 107.6183, elev: 660,  rain: 2080 },
+            { name: "Stasiun Hujan Lembang",     lat: -6.8126, lng: 107.6156, elev: 1250, rain: 2800 },
+            { name: "Stasiun Hujan Cimahi",      lat: -6.8722, lng: 107.5423, elev: 740,  rain: 2200 },
+            { name: "Stasiun Hujan Ujungberung", lat: -6.9050, lng: 107.6850, elev: 685,  rain: 2100 }
+        ];
+
+        // ─── Color helper ─────────────────────────────────────────────────────
+        function markerColor(rain) {
+            if (rain > 2500) return '#ef4444';      // Merah — Tinggi
+            if (rain >= 2100) return '#f97316';     // Oranye — Sedang
+            return '#22c55e';                        // Hijau — Rendah
+        }
+
+        function circleMarkerOptions(rain) {
+            const color = markerColor(rain);
+            return {
+                radius: 10,
+                fillColor: color,
+                color: '#fff',
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 0.9
+            };
+        }
+
+        // ─── Base layers ──────────────────────────────────────────────────────
+        const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors',
+            maxZoom: 19
+        });
+
+        const satelliteLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+            attribution: '&copy; Google Maps Satellite',
+            maxZoom: 20
+        });
+
+        const terrainLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}', {
+            attribution: '&copy; Google Maps Terrain',
+            maxZoom: 20
+        });
+
+        const baseMaps = {
+            "OpenStreetMap": osmLayer,
+            "Google Maps Satellite": satelliteLayer,
+            "Google Maps Terrain": terrainLayer
+        };
+
+        // ─── Init map ─────────────────────────────────────────────────────────
+        const map = L.map('map', {
+            center: [-6.9175, 107.6191],
+            zoom: 13,
+            layers: [osmLayer],
+            zoomControl: false
+        });
+
+        // Zoom control bottom-left
+        L.control.zoom({ position: 'bottomleft' }).addTo(map);
+
+        // Scale bar
+        L.control.scale({ metric: true, imperial: false }).addTo(map);
+
+        // Layer control
+        L.control.layers(baseMaps, null, { position: 'topright' }).addTo(map);
+
+        // ─── Markers ──────────────────────────────────────────────────────────
+        const markerMap = {}; // name → layer, for search
+
+        stations.forEach(st => {
+            const marker = L.circleMarker([st.lat, st.lng], circleMarkerOptions(st.rain));
+
+            const popupContent = `
+                <div class="popup-title">📍 ${st.name}</div>
+                <div class="popup-row"><span>Ketinggian</span><strong>${st.elev} mdpl</strong></div>
+                <div class="popup-row"><span>Curah Hujan Tahunan</span><strong>${st.rain.toLocaleString('id-ID')} mm/thn</strong></div>
+            `;
+
+            marker.bindPopup(popupContent);
+            marker.bindTooltip(
+                `<b>${st.name}</b><br>Ketinggian: ${st.elev} mdpl<br>Curah Hujan: ${st.rain.toLocaleString('id-ID')} mm/thn`,
+                { direction: 'top', offset: [0, -8] }
+            );
+
+            marker.addTo(map);
+            markerMap[st.name.toLowerCase()] = { marker, st };
+        });
+
+        // ─── Legend (bottom-right) ────────────────────────────────────────────
+        const Legend = L.Control.extend({
+            options: { position: 'bottomright' },
+            onAdd() {
+                const div = L.DomUtil.create('div', 'legend');
+                div.innerHTML = `
+                    <h4>🌧 Tingkat Curah Hujan</h4>
+                    <div class="legend-item">
+                        <span class="legend-dot" style="background:#ef4444;color:#ef4444"></span>
+                        <span>Tinggi (&gt; 2.500 mm/thn)</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-dot" style="background:#f97316;color:#f97316"></span>
+                        <span>Sedang (2.100–2.500 mm/thn)</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-dot" style="background:#22c55e;color:#22c55e"></span>
+                        <span>Rendah (&lt; 2.100 mm/thn)</span>
+                    </div>
+                `;
+                return div;
+            }
+        });
+        map.addControl(new Legend());
+
+        // ─── Search control (top-left) ────────────────────────────────────────
+        const SearchControl = L.Control.extend({
+            options: { position: 'topleft' },
+            onAdd() {
+                const container = L.DomUtil.create('div', 'search-control');
+                container.innerHTML = `
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="searchInput" placeholder="Cari stasiun hujan.." autocomplete="off" />
+                `;
+                // Prevent map from catching keyboard events inside the input
+                L.DomEvent.disableClickPropagation(container);
+                L.DomEvent.disableScrollPropagation(container);
+
+                container.querySelector('#searchInput').addEventListener('keydown', function(e) {
+                    if (e.key !== 'Enter') return;
+                    const query = this.value.trim().toLowerCase();
+                    const found = Object.keys(markerMap).find(k => k.includes(query));
+                    if (found) {
+                        const { marker, st } = markerMap[found];
+                        map.setView([st.lat, st.lng], 15);
+                        marker.openPopup();
+                    } else {
+                        alert('Stasiun hujan tidak ditemukan');
+                    }
+                });
+
+                return container;
+            }
+        });
+        map.addControl(new SearchControl());
+
+        console.log('Peta Stasiun Hujan Bandung berhasil dimuat!');
+    </script>
+</body>
+</html>
